@@ -1,7 +1,7 @@
 # L50 Ultra maintenance fork
 
 This fork starts at Tasshack/dreame-vacuum `dev`, commit
-`3720223`, upstream version `v2.0.0b25`. The maintained branch is `dev`.
+`3720223`, upstream version `v2.0.0b25`. The maintained branch is `main`; `upstream/dev` is the source for upstream updates.
 The first patch addresses setup/shutdown resource ownership. It has been tested
 locally with Home Assistant 2026.8.3 and Python 3.14; HACS minimum version is
 set to this tested baseline. No vacuum or cloud account

@@ -4,7 +4,7 @@ This fork maintains upstream `dev` for the villa's L50 Ultra. The initial patch
 addresses failed-setup resource cleanup and adds local mocked regression tests.
 **Hardware validation is pending.** See [validation and installation notes](docs/fork-validation.md).
 
-Use this fork's `dev` checkout for validation. The upstream installer and HACS
+Use this fork's `main` checkout for validation. The upstream installer and HACS
 links below install upstream releases and do **not** include this fork's fixes.
 
 ---
