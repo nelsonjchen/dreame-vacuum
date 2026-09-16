@@ -66,7 +66,8 @@ the ordinary discovery-error test passed, matching the inspected code.
 The same cancellation-order and callback-timer tests were run against PR #1774's
 actual head in a temporary copy. Both failed: it disconnects while the executor
 update is still running and does not cancel the pending callback timer.
-All 13 tests pass against this fork's patch.
+All 13 tests pass against this fork's patch on macOS and the GitHub Actions
+Ubuntu runner. Home Assistant hassfest validation also passes.
 
 ## L50 model boundary
 
