@@ -37,7 +37,12 @@ PLATFORMS = (
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Dreame Vacuum from a config entry."""
     coordinator = DreameVacuumDataUpdateCoordinator(hass, entry=entry)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except BaseException:
+        # A failed (or cancelled) entry never reaches async_unload_entry.
+        await coordinator.async_shutdown()
+        raise
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
@@ -54,7 +59,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     #    hass.http.register_static_path(frontend_js, str(Path(Path(__file__).parent / "frontend.js")), True)
 
     # Set up all platforms for this device/entry.
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except BaseException:
+        await coordinator.async_shutdown()
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        raise
 
     entry.async_on_unload(entry.add_update_listener(update_listener))
     return True
@@ -64,14 +74,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Dreame Vacuum config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         coordinator: DreameVacuumDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-        if coordinator._unsub_dispatcher:
-            coordinator._unsub_dispatcher()
-            coordinator._unsub_dispatcher = None
-        coordinator._device.listen(None)
-        coordinator._device.listen_error(None)
-        coordinator._device.disconnect()
-        del coordinator._device
-        coordinator._device = None
+        await coordinator.async_shutdown()
         del hass.data[DOMAIN][entry.entry_id]
 
     return unload_ok

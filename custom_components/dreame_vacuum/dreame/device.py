@@ -2481,9 +2481,14 @@ class DreameVacuumDevice:
             self._keep_alive_timer.cancel()
             del self._keep_alive_timer
             self._keep_alive_timer = None
-        self._protocol.disconnect()
-        if self._map_manager:
-            self._map_manager.disconnect()
+        if self._callback_timer is not None:
+            self._callback_timer.cancel()
+            self._callback_timer = None
+        try:
+            self._protocol.disconnect()
+        finally:
+            if self._map_manager:
+                self._map_manager.disconnect()
         self._property_changed(False)
 
     def listen(self, callback, property: DreameVacuumProperty = None) -> None:
@@ -2514,7 +2519,7 @@ class DreameVacuumDevice:
             del self._update_timer
             self._update_timer = None
 
-        if wait >= 0:
+        if wait >= 0 and not self.disconnected:
             self._update_timer = Timer(
                 wait, self._action_update_task if force_request_properties else self._update_task
             )

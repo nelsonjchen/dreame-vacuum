@@ -1,0 +1,11 @@
+# Home Assistant version from the upstream leak report.
+homeassistant==2026.8.3
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pillow
+numpy
+requests
+pycryptodome
+python-miio
+mini-racer
+paho-mqtt

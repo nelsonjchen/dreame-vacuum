@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import time
-import traceback
+import asyncio
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -123,6 +123,8 @@ class DreameVacuumDataUpdateCoordinator(DataUpdateCoordinator[DreameVacuumDevice
         self._notify = entry.options.get(CONF_NOTIFY, True)
         self._auth_key = entry.data.get(CONF_AUTH_KEY)
         self._entry = entry
+        self._update_future = None
+        self._shutdown_task = None
         self._ready = False
         self._available = False
         self._has_warning = False
@@ -182,7 +184,7 @@ class DreameVacuumDataUpdateCoordinator(DataUpdateCoordinator[DreameVacuumDevice
         self._device.listen(self.set_updated_data)
         self._device.listen_error(self.set_update_error)
 
-        super().__init__(hass, LOGGER, name=DOMAIN)
+        super().__init__(hass, LOGGER, name=DOMAIN, config_entry=entry)
 
         self._unsub_dispatcher = async_dispatcher_connect(
             hass,
@@ -504,36 +506,61 @@ class DreameVacuumDataUpdateCoordinator(DataUpdateCoordinator[DreameVacuumDevice
             event_data.update(data)
         self.hass.bus.fire(f"{DOMAIN}_{event_id}", event_data)
 
-    async def _async_update_data(self) -> DreameVacuumDevice:
-        """Handle device update. This function is only called once when the integration is added to Home Assistant."""
-        try:
-            LOGGER.info("Integration starting...")
-            await self.hass.async_add_executor_job(self._device.update)
-            if self._device and not self._device.disconnected:
-                if self._device.auth_failed:
-                    self._device.listen(None)
-                    self._device.disconnect()
-                    raise ConfigEntryAuthFailed() from None
-                self._device.schedule_update()
-                self.async_set_updated_data()
-                return self._device
-        except Exception as ex:
-            if self._device.auth_failed:
-                raise ConfigEntryAuthFailed("Authentication Failed!") from ex
-
-            LOGGER.warning("Integration start failed: %s", traceback.format_exc())
-            if self._device is not None:
-                self._device.listen(None)
-                self._device.listen_error(None)
-                self._device.disconnect()
-                del self._device
-                self._device = None
-                
+    async def async_shutdown(self) -> None:
+        """Release resources once, including after failed or cancelled setup."""
+        if self._shutdown_task is None:
+            device, self._device = self._device, None
+            self._available = False
             if self._unsub_dispatcher:
                 self._unsub_dispatcher()
                 self._unsub_dispatcher = None
+            if device is not None:
+                device.listen(None)
+                device.listen_error(None)
 
-            raise UpdateFailed(ex) from ex
+            async def finish_shutdown():
+                # Cancelling an await does not stop its executor thread. Wait for
+                # update() to finish before closing sessions it may still create.
+                if self._update_future is not None:
+                    try:
+                        await asyncio.shield(self._update_future)
+                    except Exception:
+                        pass
+                if device is not None:
+                    try:
+                        await self.hass.async_add_executor_job(device.disconnect)
+                    except Exception:
+                        LOGGER.exception("Device cleanup failed")
+                await super(DreameVacuumDataUpdateCoordinator, self).async_shutdown()
+
+            self._shutdown_task = self.hass.async_create_task(finish_shutdown())
+        # Keep cleanup alive even if Home Assistant cancels the caller again.
+        await asyncio.shield(self._shutdown_task)
+
+    async def _async_update_data(self) -> DreameVacuumDevice:
+        """Perform the initial update; the device schedules subsequent updates."""
+        device = self._device
+        try:
+            LOGGER.info("Integration starting...")
+            self._update_future = self.hass.async_add_executor_job(device.update)
+            await asyncio.shield(self._update_future)
+            if device.auth_failed:
+                raise ConfigEntryAuthFailed("Authentication Failed!")
+            if self._device is None or device.disconnected:
+                raise UpdateFailed("Device disconnected during setup")
+            device.schedule_update()
+            self.async_set_updated_data()
+            return device
+        except BaseException as ex:
+            auth_failed = device is not None and device.auth_failed
+            await self.async_shutdown()
+            if not isinstance(ex, Exception):
+                raise
+            if isinstance(ex, ConfigEntryAuthFailed):
+                raise
+            if auth_failed:
+                raise ConfigEntryAuthFailed("Authentication Failed!") from ex
+            raise UpdateFailed(str(ex)) from ex
 
     @property
     def device(self) -> DreameVacuumDevice:

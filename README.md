@@ -1,3 +1,14 @@
+# L50 Ultra maintenance fork
+
+This fork maintains upstream `dev` for the villa's L50 Ultra. The initial patch
+addresses failed-setup resource cleanup and adds local mocked regression tests.
+**Hardware validation is pending.** See [validation and installation notes](docs/fork-validation.md).
+
+Use this fork's `dev` checkout for validation. The upstream installer and HACS
+links below install upstream releases and do **not** include this fork's fixes.
+
+---
+
 [![Version](https://img.shields.io/github/manifest-json/v/Tasshack/dreame-vacuum/dev?filename=custom_components%2Fdreame_vacuum%2Fmanifest.json&color=slateblue&label=Version&style=for-the-badge)](https://github.com/Tasshack/dreame-vacuum/releases)
 ![Downloads](https://img.shields.io/github/downloads/Tasshack/dreame-vacuum/total?label=Downloads&style=for-the-badge)
 ![Stars](https://img.shields.io/github/stars/Tasshack/dreame-vacuum?label=Stars&color=darkgoldenrod&style=for-the-badge)
