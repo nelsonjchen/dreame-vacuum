@@ -3096,7 +3096,7 @@ class DreameVacuumDeviceCapability:
         if self._capability is None:
             raise Exception("Device capability missing!")
         if len(device) == 4:
-            if device[3] < 0 or device[3] >= len(device_info[1] or device[3] < 0):
+            if device[3] < 0 or device[3] >= len(device_info[2]):
                 raise Exception("Device key missing!")
             self.key = device_info[2][device[3]]
             if not self.key or len(self.key) < 1:

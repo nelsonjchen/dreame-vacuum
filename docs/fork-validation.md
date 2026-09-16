@@ -108,3 +108,13 @@ firmware-specific capabilities, or every timer race correct. Shutdown must wait
 for an in-flight synchronous update's network calls to return; if one hangs
 indefinitely, Python cannot forcibly cancel that worker. Hardware validation and
 an outage soak remain required before calling this deployment proven.
+
+## Capability metadata index validation
+
+The loader checked device key indexes against the capability table instead of
+its separate key table. This could reject a valid key or allow an invalid index
+to raise an unhelpful IndexError. The comparison now uses the key table.
+Four offline regression cases cover a valid key above the capability-table bound
+and negative/out-of-range key indexes. Three cases failed before the fix; all
+17 tests pass after it. This is a general metadata-loader fix, not a claim of
+an observed fault on Nelson's L50 or a new device capability.
