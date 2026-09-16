@@ -9928,6 +9928,7 @@ class DreameVacuumDeviceStatus:
             return int((1 - (progress / 100)) * drying_time)
         return 0
 
+    @property
     def cleaning_sequence_v2(self) -> bool:
         return bool(self.selected_map.version > 1) if self.selected_map else self._capability.cleaning_sequence_v2
 

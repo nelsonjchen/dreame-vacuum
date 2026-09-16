@@ -118,3 +118,6 @@ Four offline regression cases cover a valid key above the capability-table bound
 and negative/out-of-range key indexes. Three cases failed before the fix; all
 17 tests pass after it. This is a general metadata-loader fix, not a claim of
 an observed fault on Nelson's L50 or a new device capability.
+
+See [the L50 plugin audit](l50-plugin-audit.md) for verified model provenance,
+protocol comparisons, the room-order fix, and hardware validation steps.
